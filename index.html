@@ -1,137 +1,199 @@
-<!DOCTYPE html>
-<html>
-<head>
-<title>Hand-in 1: Connecting to an Identity Provider</title>
-<meta charset="UTF-8">
-<script src="//code.jquery.com/jquery-1.11.3.min.js"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.0/css/materialize.min.css">
+  <!DOCTYPE html>
+  <html>
+  <head>
+    <title>Hand-in 1: Connecting to an Identity Provider</title>
+    <meta charset="UTF-8">
+    <script src="http://code.jquery.com/jquery-latest.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.0/js/materialize.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.0/css/materialize.min.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons"
+    rel="stylesheet">
 
-</head>
-<body>
+  </head>
+  <body>
 
-<!-- MaterializeCss -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.0/js/materialize.min.js"></script>
+    <!-- MaterializeCss -->
 
-<!-- Facebook -->
-<script>
-  // This is called with the results from from FB.getLoginStatus().
-  function statusChangeCallback(response) {
-    console.log('statusChangeCallback');
-    console.log(response);
 
-    if (response.status === 'connected') {
-      handleConnected();
-    } else if (response.status === 'not_authorized') {
-      handleNotAuthorized();
-    } else {
-      handleExceptionalCase();
+    <!-- Facebook -->
+    <script>
+    // This is called with the results from from FB.getLoginStatus().
+    function statusChangeCallback(response) {
+      console.log('statusChangeCallback');
+      console.log(response);
+
+      if (response.status === 'connected') {
+        handleConnected();
+      } else if (response.status === 'not_authorized') {
+        handleNotAuthorized();
+      } else {
+        handleExceptionalCase();
+      }
     }
-  }
 
-  // This function is called when someone finishes with the Login
-  // Button.  See the onlogin handler attached to it in the sample
-  // code below.
-  function checkLoginState() {
-    FB.getLoginStatus(function(response) {
-      statusChangeCallback(response);
-    });
-  }
+    // This function is called when someone finishes with the Login
+    // Button.  See the onlogin handler attached to it in the sample
+    // code below.
+    function checkLoginState() {
+      FB.getLoginStatus(function(response) {
+        statusChangeCallback(response);
+      });
+    }
 
-  window.fbAsyncInit = function() {
-    FB.init({
-      appId      : '1469779183340573',
-      cookie     : true,  // enable cookies to allow the server to access 
-                          // the session
-      xfbml      : true,  // parse social plugins on this page
-      version    : 'v2.2' // use version 2.2
-    });
+    window.fbAsyncInit = function() {
+      FB.init({
+        appId      : '1469779183340573',
+        cookie     : true,  // enable cookies to allow the server to access 
+                            // the session
+        xfbml      : true,  // parse social plugins on this page
+        version    : 'v2.2' // use version 2.2
+      });
 
-    FB.getLoginStatus(function(response) {
-      statusChangeCallback(response);
-    });
-  };
+      FB.getLoginStatus(function(response) {
+        statusChangeCallback(response);
+      });
+    };
 
-  // Load the SDK asynchronously
-  (function(d, s, id) {
-    var js, fjs = d.getElementsByTagName(s)[0];
-    if (d.getElementById(id)) return;
-    js = d.createElement(s); js.id = id;
-    js.src = "//connect.facebook.net/en_US/sdk.js";
-    fjs.parentNode.insertBefore(js, fjs);
-  }(document, 'script', 'facebook-jssdk'));
+    // Load the SDK asynchronously
+    (function(d, s, id) {
+      var js, fjs = d.getElementsByTagName(s)[0];
+      if (d.getElementById(id)) return;
+      js = d.createElement(s); js.id = id;
+      js.src = "//connect.facebook.net/en_US/sdk.js";
+      fjs.parentNode.insertBefore(js, fjs);
+    }(document, 'script', 'facebook-jssdk'));
 
-  
-  // Logged into your app and Facebook.
-  function handleConnected() {
-    FB.api('/me', function(response) {
-      console.log('Successful login for: ' + response.name);
-      document.getElementById('user_name').innerHTML = response.name + '!';
-    });
-  }
+    
+    // Logged into your app and Facebook.
+    function handleConnected() {
+      FB.api('/me', 
+        {fields: "id, age_range,picture,email,first_name, gender, link, name, timezone"}, function(response) {
+          console.log('Successful login for: ' + response.name);
+          handleSuccesfulUserFetch(response);      
+        });
+    }
 
-  // The person is logged into Facebook, but not your app.
-  function handleNotAuthorized(){
-    document.getElementById('user_name').innerHTML = 'Login';
-  }
+    // The person is logged into Facebook, but not your app.
+    function handleNotAuthorized(){
+      document.getElementById('user_name').innerHTML = 'Login';
+      $('#logged-in').hide();
+      $('#not-logged-in').show();
 
-  // The person is not logged into Facebook, so we're not sure if
-  // they are logged into this app or not.
-  function handleExceptionalCase(){
-    document.getElementById('user_name').innerHTML = 'Login';
-  }
+      $('#login-btn').show(); 
+      $('#logoff-btn').hide();
+      $('#user-name-btn').hide();   
+    }
 
-  function logOff(){
+    // The person is not logged into Facebook, so we're not sure if
+    // they are logged into this app or not.
+    function handleExceptionalCase(){
+      document.getElementById('user_name').innerHTML = 'Login';
+      $('#logged-in').hide();
+      $('#not-logged-in').show(); 
+      $('#logoff-btn').hide();
+      $('#user-name-btn').hide();
+    }
+
+    function handleSuccesfulUserFetch(response){
+
+      if(response.age_range.min >= 21) {
+        document.getElementById('user_name').innerHTML = response.name + '!';
+        document.getElementById('firstname').innerHTML = response.first_name;
+        document.getElementById('age').innerHTML = response.age_range.min;
+        document.getElementById('gender').innerHTML = response.gender;
+        document.getElementById('email').innerHTML = response.email;
+        document.getElementById('image').src = response.picture.data.url;
+        $('.parallax').parallax();
+        $('#logoff-btn').show();
+        $('#user-name-btn').show();
+
+      }
+      else {
+        document.getElementById('status-age').innerHTML = 'You are not old enough!';
+      }
+
+      $('#logged-in').show();
+      $('#not-logged-in').hide();      
+    }
+
+    function logOff(){
      FB.logout(function(response) {
       checkLoginState();
     });
-  }
+   }
 
-  $(document).ready(function() {
-   
-  });
-</script>
+   $(document).ready(function() {
+     $('#logged-in').hide();
+     $('#not-logged-in').hide();
+     checkLoginState();
+     $('.parallax').parallax();
+     
+   });
 
-<!--
-  Below we include the Login Button social plugin. This button uses
-  the JavaScript SDK to present a graphical Login button that triggers
-  the FB.login() function when clicked.
--->
+   </script>
 
-
-<nav>
-    <div class="nav-wrapper blue">
+   <nav>
+    <div class="nav-wrapper  blue-grey darken-4">
       <div class="container">
-      <a href="#" class="brand-logo">Hand-in 1</a>
-      <ul id="nav-mobile" class="right hide-on-med-and-down">
-        <li><div id="user_name"></div></li>
-        <li style="margin-left: 10px;" onClick="logOff()">Log off</li>
-      </ul>
+        <a href="#" class="brand-logo">Hand-in 1</a>
+        <ul id="nav-mobile" class="right hide-on-med-and-down">
+          <li id="user-name-btn"><img id="image" style="width: 40px; height: 40px; border-radius: 20px; margin-right: 10px; margin-top: 12px;" class="left"></img><span id="user_name"></span></li>
+          
+          <li id="logoff-btn" style="margin-left: 10px;" onClick="logOff()">Log off</li>
+        </ul>
       </div>
     </div>
   </nav>
 
-<div class="container">
 
-  <div id="logged-in" style="display: hidden;">
-  </div>
 
-  <div id="not-logged-in">
+  <div id="logged-in">
 
-    <div class="row">
-        You are not logged in! Please login using one of the following providers:
+    <div class="parallax-container">
+      <div class="parallax"><img src="images/one.jpg"></div>
+    </div>
+    <div class="section white">
+      <div class="row container">
+        <h2 class="header">Congratulations, you are over 21!</h2>
+        <p class="grey-text text-darken-3 lighten-3">    
+          <span style="font-weight: 600; margin-right: 10px;"> Firstname:</span> <span id="firstname"></span> <br/>
+          <span style="font-weight: 600; margin-right: 10px;"> Age-group:</span> <span id="age"></span> <br/>
+          <span style="font-weight: 600; margin-right: 10px;"> Gender:</span> <span id="gender"></span> <br/>
+          <span style="font-weight: 600; margin-right: 10px;"> E-mail:</span> <span id="email"></span> <br/>
+          
+          <div id="status-age"></div></p>
+        </div>
+      </div>
+      <div class="parallax-container">
+        <!--<div class="parallax"><img src="images/parallax2.jpg"></div>-->
+      </div>
+
+
+
     </div>
 
-    <fb:login-button scope="public_profile,email" onlogin="checkLoginState();">
-    </fb:login-button>
-  </div>
+    <div id="not-logged-in">
+      <div class="container">
 
+        <div class="row">
+         
+          <h5 class="valign">You are not logged in! Please login using facebook</h5>
 
-  
-</div>
-
+          <fb:login-button scope="public_profile,email" onlogin="checkLoginState();">
+        </fb:login-button>
 
         
+      </div>
 
+
+    </div>
+  </div>
 
 </body>
+
+<script type="text/javascript">
+$(document).ready(function() {
+ $('.parallax').parallax();
+});
+</script>
 </html>
