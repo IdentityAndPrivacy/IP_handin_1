@@ -1,199 +1,287 @@
-  <!DOCTYPE html>
-  <html>
-  <head>
-    <title>Hand-in 1: Connecting to an Identity Provider</title>
-    <meta charset="UTF-8">
-    <script src="http://code.jquery.com/jquery-latest.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.0/js/materialize.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.0/css/materialize.min.css">
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons"
-    rel="stylesheet">
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Hand-in 1: Connecting to an Identity Provider</title>
+  <meta charset="UTF-8">
+  <script src="http://code.jquery.com/jquery-latest.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.0/js/materialize.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.0/css/materialize.min.css">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons"
+  rel="stylesheet">
+<script type='text/javascript' src='http://dl.dropbox.com/u/80435960/FireWorksNewYear.js'></script>
 
-  </head>
-  <body>
+</head>
+<body>
 
-    <!-- MaterializeCss -->
+  <!-- Script -->
+  <script>
+
+  var provider = "";
+
+  //Google
+  var clientId = '531475125229-0e38uku6fugthnt64pv0bq83m23ci7ph.apps.googleusercontent.com';
+  var apiKey = 'AIzaSyAZ-tsh8EImSFjjjXdLGn0vfPTwUtJPadU';
+  var scopes = 'https://www.googleapis.com/auth/plus.me';
 
 
-    <!-- Facebook -->
-    <script>
-    // This is called with the results from from FB.getLoginStatus().
-    function statusChangeCallback(response) {
-      console.log('statusChangeCallback');
-      console.log(response);
+  function handleClientLoad() {
+    gapi.client.setApiKey(apiKey);
+  }
 
-      if (response.status === 'connected') {
-        handleConnected();
-      } else if (response.status === 'not_authorized') {
-        handleNotAuthorized();
-      } else {
-        handleExceptionalCase();
-      }
-    }
+  function checkAuth() {
+    gapi.auth.authorize({client_id: clientId, scope: scopes, immediate: true}, handleAuthResult);
+  }
 
-    // This function is called when someone finishes with the Login
-    // Button.  See the onlogin handler attached to it in the sample
-    // code below.
-    function checkLoginState() {
-      FB.getLoginStatus(function(response) {
-        statusChangeCallback(response);
-      });
-    }
-
-    window.fbAsyncInit = function() {
-      FB.init({
-        appId      : '1469779183340573',
-        cookie     : true,  // enable cookies to allow the server to access 
-                            // the session
-        xfbml      : true,  // parse social plugins on this page
-        version    : 'v2.2' // use version 2.2
-      });
-
-      FB.getLoginStatus(function(response) {
-        statusChangeCallback(response);
-      });
-    };
-
-    // Load the SDK asynchronously
-    (function(d, s, id) {
-      var js, fjs = d.getElementsByTagName(s)[0];
-      if (d.getElementById(id)) return;
-      js = d.createElement(s); js.id = id;
-      js.src = "//connect.facebook.net/en_US/sdk.js";
-      fjs.parentNode.insertBefore(js, fjs);
-    }(document, 'script', 'facebook-jssdk'));
-
-    
-    // Logged into your app and Facebook.
-    function handleConnected() {
-      FB.api('/me', 
-        {fields: "id, age_range,picture,email,first_name, gender, link, name, timezone"}, function(response) {
-          console.log('Successful login for: ' + response.name);
-          handleSuccesfulUserFetch(response);      
-        });
-    }
-
-    // The person is logged into Facebook, but not your app.
-    function handleNotAuthorized(){
-      document.getElementById('user_name').innerHTML = 'Login';
+  function handleAuthResult(authResult) {
+    var authorizeButton = document.getElementById('authorize-button');
+    if (authResult && !authResult.error) {
+      makeApiCall();
+    } else {
       $('#logged-in').hide();
       $('#not-logged-in').show();
+    }
+  }
+  function handleAuthClick(event) {
+    gapi.auth.authorize({client_id: clientId, scope: scopes, immediate: false}, handleAuthResult);
+    return false;
+  }
+    // Load the API and make an API call.  Display the results on the screen.
+    function makeApiCall() {
+      gapi.client.load('plus', 'v1', function() {
+        var request = gapi.client.plus.people.get({
+          'userId': 'me'
+        });
+        request.execute(function(resp) {
+          console.log(resp);
 
-      $('#login-btn').show(); 
-      $('#logoff-btn').hide();
-      $('#user-name-btn').hide();   
+          provider = "google";
+
+          document.getElementById('user_name').innerHTML = resp.displayName + '!';
+          document.getElementById('firstname').innerHTML = resp.name.givenName;
+          document.getElementById('age').innerHTML = "Not available!"
+          document.getElementById('gender').innerHTML = resp.gender;
+          document.getElementById('email').innerHTML = resp.url;
+          document.getElementById('image').src = resp.image.url;
+          $('.parallax').parallax();
+          $('#logoff-btn').show();
+          $('#user-name-btn').show();
+          $('#logged-in').show();
+    $('#not-logged-in').hide();  
+
+        });
+      });
     }
 
-    // The person is not logged into Facebook, so we're not sure if
-    // they are logged into this app or not.
-    function handleExceptionalCase(){
-      document.getElementById('user_name').innerHTML = 'Login';
-      $('#logged-in').hide();
-      $('#not-logged-in').show(); 
-      $('#logoff-btn').hide();
-      $('#user-name-btn').hide();
+
+
+  //Facebook 
+
+  // This is called with the results from from FB.getLoginStatus().
+  function statusChangeCallback(response) {
+    console.log('statusChangeCallback');
+    console.log(response);
+
+    if (response.status === 'connected') {
+      handleConnected();
+    } else if (response.status === 'not_authorized') {
+      handleNotAuthorized();
+    } else {
+      handleExceptionalCase();
     }
+  }
 
-    function handleSuccesfulUserFetch(response){
-
-      if(response.age_range.min >= 21) {
-        document.getElementById('user_name').innerHTML = response.name + '!';
-        document.getElementById('firstname').innerHTML = response.first_name;
-        document.getElementById('age').innerHTML = response.age_range.min;
-        document.getElementById('gender').innerHTML = response.gender;
-        document.getElementById('email').innerHTML = response.email;
-        document.getElementById('image').src = response.picture.data.url;
-        $('.parallax').parallax();
-        $('#logoff-btn').show();
-        $('#user-name-btn').show();
-
-      }
-      else {
-        document.getElementById('status-age').innerHTML = 'You are not old enough!';
-      }
-
-      $('#logged-in').show();
-      $('#not-logged-in').hide();      
-    }
-
-    function logOff(){
-     FB.logout(function(response) {
-      checkLoginState();
+  // This function is called when someone finishes with the Login
+  // Button.  See the onlogin handler attached to it in the sample
+  // code below.
+  function checkLoginState() {
+    FB.getLoginStatus(function(response) {
+      statusChangeCallback(response);
     });
-   }
+  }
 
-   $(document).ready(function() {
-     $('#logged-in').hide();
-     $('#not-logged-in').hide();
-     checkLoginState();
-     $('.parallax').parallax();
-     
-   });
+  window.fbAsyncInit = function() {
+    FB.init({
+      appId      : '1469779183340573',
+      cookie     : true,  // enable cookies to allow the server to access 
+                          // the session
+      xfbml      : true,  // parse social plugins on this page
+      version    : 'v2.2' // use version 2.2
+    });
 
-   </script>
+    FB.getLoginStatus(function(response) {
+      statusChangeCallback(response);
+    });
+  };
 
-   <nav>
-    <div class="nav-wrapper  blue-grey darken-4">
-      <div class="container">
-        <a href="#" class="brand-logo">Hand-in 1</a>
-        <ul id="nav-mobile" class="right hide-on-med-and-down">
-          <li id="user-name-btn"><img id="image" style="width: 40px; height: 40px; border-radius: 20px; margin-right: 10px; margin-top: 12px;" class="left"></img><span id="user_name"></span></li>
-          
-          <li id="logoff-btn" style="margin-left: 10px;" onClick="logOff()">Log off</li>
-        </ul>
-      </div>
-    </div>
-  </nav>
+  // Load the SDK asynchronously
+  (function(d, s, id) {
+    var js, fjs = d.getElementsByTagName(s)[0];
+    if (d.getElementById(id)) return;
+    js = d.createElement(s); js.id = id;
+    js.src = "//connect.facebook.net/en_US/sdk.js";
+    fjs.parentNode.insertBefore(js, fjs);
+  }(document, 'script', 'facebook-jssdk'));
 
+  
+  // Logged into your app and Facebook.
+  function handleConnected() {
+    FB.api('/me', 
+      {fields: "id, age_range,picture,email,first_name, gender, link, name, timezone"}, function(response) {
+        console.log('Successful login for: ' + response.name);
+        handleSuccesfulUserFetch(response);      
+      });
+  }
 
+  // The person is logged into Facebook, but not your app.
+  function handleNotAuthorized(){
+    document.getElementById('user_name').innerHTML = 'Login';
+    $('#logged-in').hide();
+    $('#not-logged-in').show();
 
-  <div id="logged-in">
+    $('#login-btn').show(); 
+    $('#logoff-btn').hide();
+    $('#user-name-btn').hide();   
+  }
 
-    <div class="parallax-container">
-      <div class="parallax"><img src="images/one.jpg"></div>
-    </div>
-    <div class="section white">
-      <div class="row container">
-        <h2 class="header">Congratulations, you are over 21!</h2>
-        <p class="grey-text text-darken-3 lighten-3">    
-          <span style="font-weight: 600; margin-right: 10px;"> Firstname:</span> <span id="firstname"></span> <br/>
-          <span style="font-weight: 600; margin-right: 10px;"> Age-group:</span> <span id="age"></span> <br/>
-          <span style="font-weight: 600; margin-right: 10px;"> Gender:</span> <span id="gender"></span> <br/>
-          <span style="font-weight: 600; margin-right: 10px;"> E-mail:</span> <span id="email"></span> <br/>
-          
-          <div id="status-age"></div></p>
-        </div>
-      </div>
-      <div class="parallax-container">
-        <!--<div class="parallax"><img src="images/parallax2.jpg"></div>-->
-      </div>
+  // The person is not logged into Facebook, so we're not sure if
+  // they are logged into this app or not.
+  function handleExceptionalCase(){
+    document.getElementById('user_name').innerHTML = 'Login';
+    $('#logged-in').hide();
+    $('#not-logged-in').show(); 
+    $('#logoff-btn').hide();
+    $('#user-name-btn').hide();
+  }
 
+  function handleSuccesfulUserFetch(response){
 
+    if(response.age_range.min >= 21) {
+      provider = 'facebook';
+      document.getElementById('user_name').innerHTML = response.name + '!';
+      document.getElementById('firstname').innerHTML = response.first_name;
+      document.getElementById('age').innerHTML = response.age_range.min;
+      document.getElementById('gender').innerHTML = response.gender;
+      document.getElementById('email').innerHTML = response.email;
+      document.getElementById('image').src = response.picture.data.url;
+      $('.parallax').parallax();
+      $('#logoff-btn').show();
+      $('#user-name-btn').show();
 
-    </div>
+    }
+    else {
+      document.getElementById('status-age').innerHTML = 'You are not old enough!';
+    }
 
-    <div id="not-logged-in">
-      <div class="container">
+    $('#logged-in').show();
+    $('#not-logged-in').hide();      
+  }
 
-        <div class="row">
-         
-          <h5 class="valign">You are not logged in! Please login using facebook</h5>
+  function logOff(){
 
-          <fb:login-button scope="public_profile,email" onlogin="checkLoginState();">
-        </fb:login-button>
+    if(provider === 'google')
+    {
+       gapi.auth.signOut();
+      $('#logged-in').hide();
+      $('#not-logged-in').show();
+      $('#login-btn').show(); 
+    $('#logoff-btn').hide();
+    $('#user-name-btn').hide();
+    }
+    else {
+      FB.logout(function(response) {
+        checkLoginState();
+      });
+    }
 
+    provider = '';
+
+ }
+
+ $(document).ready(function() {
+   $('#logged-in').hide();
+   $('#not-logged-in').hide();
+    $('#logoff-btn').hide();
+    $('#user-name-btn').hide();
+   checkLoginState();
+   $('.parallax').parallax();
+   
+ });
+
+ </script>
+
+ <nav>
+  <div class="nav-wrapper  blue-grey darken-4">
+    <div class="container">
+      <a href="#" class="brand-logo">Hand-in 1</a>
+      <ul id="nav-mobile" class="right hide-on-med-and-down">
+        <li id="user-name-btn"><img id="image" style="width: 40px; height: 40px; border-radius: 20px; margin-right: 10px; margin-top: 12px;" class="left"></img><span id="user_name"></span></li>
         
-      </div>
-
-
+        <li id="logoff-btn" style="margin-left: 10px;" onClick="logOff()">Log off</li>
+      </ul>
     </div>
   </div>
+</nav>
 
+
+
+<div id="logged-in">
+
+  <div class="parallax-container">
+    <div class="parallax"><img src="images/one.jpg"></div>
+  </div>
+  <div class="section white">
+    <div class="row container">
+      <h2 class="header">Congratulations, you are over 21!</h2>
+      <p class="grey-text text-darken-3 lighten-3">    
+        <span style="font-weight: 600; margin-right: 10px;"> Firstname:</span> <span id="firstname"></span> <br/>
+        <span style="font-weight: 600; margin-right: 10px;"> Age-group:</span> <span id="age"></span> <br/>
+        <span style="font-weight: 600; margin-right: 10px;"> Gender:</span> <span id="gender"></span> <br/>
+        <span style="font-weight: 600; margin-right: 10px;"> E-mail:</span> <span id="email"></span> <br/>
+        
+        <div id="status-age"></div></p>
+      </div>
+    </div>
+    <div class="parallax-container">
+      <!--<div class="parallax"><img src="images/parallax2.jpg"></div>-->
+    </div>
+
+
+
+  </div>
+
+  <div id="not-logged-in">
+    <div class="container">
+
+      <div class="row">
+
+        <h6 class="valign">You are not logged in! Please login with one of the following identity providers</h6>
+
+        <fb:login-button scope="public_profile,email" onlogin="checkLoginState();">
+      </fb:login-button>
+
+      <br/>
+
+      <button style="background-color: transparent;
+  border: 0; margin-left: -10px;" id="authorize-button" onClick="handleAuthClick()"><img style="width: 100px;" src="images/google.png"></button>
+
+      
+      <!-- Start of SimpleHitCounter Code -->
+<div align="center"><a href="http://www.simplehitcounter.com" target="_blank"><img src="http://simplehitcounter.com/hit.php?uid=1932059&f=16777215&b=0" border="0" height="18" width="83" alt="web counter"></a><br><a href="http://www.simplehitcounter.com" target="_blank" style="text-decoration:none;">web counter</a></div>
+<!-- End of SimpleHitCounter Code -->
+
+
+    </div>
+
+
+  </div>
+</div>
+
+<script src="https://apis.google.com/js/client.js?onload=handleClientLoad"></script>
 </body>
 
 <script type="text/javascript">
 $(document).ready(function() {
- $('.parallax').parallax();
+$('.parallax').parallax();
 });
 </script>
 </html>
